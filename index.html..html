@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Master — 2025 Sales Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.1);
+    --text-primary: #1a1a18;
+    --text-secondary: #5f5e5a;
+    --text-muted: #888780;
+    --blue: #378ADD;
+    --green: #1D9E75;
+    --amber: #EF9F27;
+    --purple: #7F77DD;
+    --coral: #D85A30;
+    --red: #E24B4A;
+    --green-chart: #639922;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #242422;
+      --surface2: #2c2c2a;
+      --border: rgba(255,255,255,0.1);
+      --text-primary: #f0efe9;
+      --text-secondary: #b4b2a9;
+      --text-muted: #888780;
+    }
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .header-badge {
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .header-badge strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* Layout */
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .sec-lbl {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 12px;
+  }
+
+  /* KPI grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+  .kpi {
+    background: var(--surface2);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+  }
+  .kpi-lbl { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+  .kpi-val { font-size: 24px; font-weight: 500; color: var(--text-primary); line-height: 1.15; }
+  .kpi-sub { font-size: 11px; color: var(--text-secondary); margin-top: 5px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+  }
+
+  /* Two / three col */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+  @media (max-width: 750px) {
+    .two-col, .three-col { grid-template-columns: 1fr; }
+  }
+
+  /* Legend */
+  .leg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .leg span { display: flex; align-items: center; gap: 5px; }
+  .ld { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .ld-line { width: 20px; height: 3px; border-radius: 0; flex-shrink: 0; }
+
+  /* Bar chart rows */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+    font-size: 12px;
+  }
+  .bar-lbl {
+    width: 160px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-track {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: 3px;
+    height: 14px;
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .bar-val {
+    width: 64px;
+    text-align: right;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Insights */
+  .ins { list-style: none; }
+  .ins li {
+    display: flex;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    align-items: flex-start;
+  }
+  .ins li:last-child { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .b-up { background: #EAF3DE; color: #3B6D11; }
+  .b-dn { background: #FCEBEB; color: #A32D2D; }
+  .b-bl { background: #E6F1FB; color: #185FA5; }
+  .b-am { background: #FAEEDA; color: #854F0B; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 0.5px solid var(--border);
+    margin-top: 1rem;
+  }
+
+  /* Print */
+  @media print {
+    body { background: white; }
+    .header { break-inside: avoid; }
+    .card { break-inside: avoid; border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Gym Master — 2025 Sales &amp; Payments Dashboard</h1>
+    <p>Jan 1, 2025 – Dec 31, 2025 · All payments · 6,284 transactions</p>
+  </div>
+  <div class="header-badge">Generated <strong>April 2026</strong> · Data source: Gym Master export</div>
+</div>
+
+<div class="page">
+
+  <p class="sec-lbl" style="margin-top:0.5rem;">2025 year at a glance</p>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <p class="kpi-lbl">Total gross revenue</p>
+      <p class="kpi-val">$409,558</p>
+      <p class="kpi-sub">All positive payments 2025</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Net after refunds</p>
+      <p class="kpi-val">$404,700</p>
+      <p class="kpi-sub">$4,858 refunded across the year</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Best month</p>
+      <p class="kpi-val">October</p>
+      <p class="kpi-sub">$41,912 — $12K above weakest</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Weakest months</p>
+      <p class="kpi-val">Feb / Nov</p>
+      <p class="kpi-sub">Both under $30K — prime targets</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Monthly average</p>
+      <p class="kpi-val">$34,130</p>
+      <p class="kpi-sub">Gross revenue per month</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Auto-billing share</p>
+      <p class="kpi-val">80%</p>
+      <p class="kpi-sub">$323K via recurring billing</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">Product sales</p>
+      <p class="kpi-val">$28,239</p>
+      <p class="kpi-sub">7% of total · 9 categories</p>
+    </div>
+    <div class="kpi">
+      <p class="kpi-lbl">2026 forecast</p>
+      <p class="kpi-val">$442,569</p>
+      <p class="kpi-sub">+8% on current growth trend</p>
+    </div>
+  </div>
+
+  <!-- Main chart -->
+  <div class="card">
+    <p class="card-title">Monthly revenue — 2025 actual vs 2026 forecast</p>
+    <p class="card-sub">Green bars = 2025 gross revenue · Red = refunds issued · Line = 2026 linear trend forecast</p>
+    <div class="leg">
+      <span><span class="ld" style="background:#378ADD;"></span>2025 revenue</span>
+      <span><span class="ld" style="background:#E24B4A;"></span>Refunds</span>
+      <span><span class="ld-line" style="background:#639922;"></span>2026 forecast</span>
+    </div>
+    <div style="position:relative;width:100%;height:320px;">
+      <canvas id="mainChart" role="img" aria-label="Monthly revenue 2025 vs 2026 forecast. October highest at $41,912. February and November lowest near $29,573. 2026 forecast ranges from $35,620 in January to $38,142 in December."></canvas>
+    </div>
+  </div>
+
+  <!-- Donut row -->
+  <div class="two-col">
+    <div class="card">
+      <p class="card-title">Revenue by payment origin</p>
+      <p class="card-sub">Where your money comes from — full year 2025</p>
+      <div class="leg">
+        <span><span class="ld" style="background:#378ADD;"></span>Billing $286K</span>
+        <span><span class="ld" style="background:#1D9E75;"></span>Membership $87K</span>
+        <span><span class="ld" style="background:#EF9F27;"></span>Product sale $28K</span>
+        <span><span class="ld" style="background:#7F77DD;"></span>Booking/Other $2K</span>
+      </div>
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="originChart" role="img" aria-label="Donut chart: Billing 71%, Membership 22%, Product Sale 7%, Booking less than 1%."></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <p class="card-title">Payment method split</p>
+      <p class="card-sub">How members are paying — full year 2025</p>
+      <div class="leg">
+        <span><span class="ld" style="background:#378ADD;"></span>Auto-billing $323K</span>
+        <span><span class="ld" style="background:#1D9E75;"></span>Check $34K</span>
+        <span><span class="ld" style="background:#EF9F27;"></span>Cash $28K</span>
+        <span><span class="ld" style="background:#7F77DD;"></span>Card $24K</span>
+      </div>
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="methodChart" role="img" aria-label="Donut chart: Auto-billing 80%, Check 8%, Cash 7%, Card 6%."></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Billing vs Membership monthly -->
+  <div class="card">
+    <p class="card-title">Billing vs membership payments — monthly comparison</p>
+    <p class="card-sub">Your two largest revenue streams side by side each month</p>
+    <div class="leg">
+      <span><span class="ld" style="background:#378ADD;"></span>Billing (auto-recurring)</span>
+      <span><span class="ld" style="background:#1D9E75;"></span>Membership (direct)</span>
+    </div>
+    <div style="position:relative;width:100%;height:280px;">
+      <canvas id="bmChart" role="img" aria-label="Grouped bar chart of billing vs membership revenue by month. October billing was highest at $30,716."></canvas>
+    </div>
+  </div>
+
+  <!-- Membership categories + Product bars -->
+  <div class="two-col">
+    <div class="card">
+      <p class="card-title">Membership category revenue</p>
+      <p class="card-sub">Billing payments by membership type — 2025 total</p>
+      <div id="catBars"></div>
+    </div>
+    <div class="card">
+      <p class="card-title">Product sales breakdown</p>
+      <p class="card-sub">$28,239 total across 9 product categories</p>
+      <div id="prodBars"></div>
+    </div>
+  </div>
+
+  <!-- MoM + % of year -->
+  <div class="two-col">
+    <div class="card">
+      <p class="card-title">Month-over-month revenue change</p>
+      <p class="card-sub">Red = revenue declined from prior month — plan campaigns here</p>
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="momChart" role="img" aria-label="Month over month change bar chart. February, May, July, August, November showed declines."></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <p class="card-title">Monthly share of annual revenue</p>
+      <p class="card-sub">Each month as % of 2025 total — shows seasonal weight</p>
+      <div style="position:relative;width:100%;height:240px;">
+        <canvas id="shareChart" role="img" aria-label="Bar chart showing each month's percentage of annual revenue. October was highest at 10.2%."></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refunds detail -->
+  <div class="card">
+    <p class="card-title">Monthly refunds vs gross revenue</p>
+    <p class="card-sub">$4,858 in total refunds across 2025 — October had the largest single month at $1,333</p>
+    <div style="position:relative;width:100%;height:220px;">
+      <canvas id="refundChart" role="img" aria-label="Bar chart showing refund amounts by month. October had the highest refunds at $1,333."></canvas>
+    </div>
+  </div>
+
+  <!-- Insights -->
+  <div class="card">
+    <p class="card-title">Key insights &amp; 2026 action plan</p>
+    <ul class="ins" style="margin-top:0.75rem;">
+      <li>
+        <span class="badge b-up">Best month</span>
+        <span>October led at $41,912 — nearly $12K above your two weakest months. Billing spiked to $30,716 that month (vs. ~$22K average). Identify what drove it (fall re-enrollment cycle, rate changes, new members) and replicate in 2026.</span>
+      </li>
+      <li>
+        <span class="badge b-dn">February</span>
+        <span>February ($29,600) was your softest month. Post-New Year dropout is common — a mid-January re-engagement campaign, check-in call blitz, or "stay on track" promo could recover $3,000–$5,000 here. Prioritize this in your 2026 calendar.</span>
+      </li>
+      <li>
+        <span class="badge b-dn">November</span>
+        <span>November ($29,573) matched February as the weakest. Billing dropped to $20,240 — the lowest all year. A Black Friday membership promo or holiday gift card push could meaningfully lift this month in 2026.</span>
+      </li>
+      <li>
+        <span class="badge b-dn">Oct refunds</span>
+        <span>Despite being your best revenue month, October also had the highest refund total at $1,333. Net revenue was still strong, but it's worth auditing what drove those reversals to prevent recurrence.</span>
+      </li>
+      <li>
+        <span class="badge b-bl">Revenue mix</span>
+        <span>Auto-billing accounts for 80% of revenue ($323K) — a healthy, predictable base. Membership direct payments add 22% ($87K). Every new recurring member you add is worth approximately $371/year at the average billing rate.</span>
+      </li>
+      <li>
+        <span class="badge b-bl">Membership types</span>
+        <span>Import Memberships ($87.5K) and Gym Memberships ($77.5K) are your top two billing categories. Group Training ($49K) and Personal Training ($46K) are nearly tied — a focused PT growth push could make PT your #3 revenue driver by year end.</span>
+      </li>
+      <li>
+        <span class="badge b-am">Product sales</span>
+        <span>General products ($10,909) and Drop-In fees ($5,517) lead your product revenue. Supplements ($4,751) are strong — a dedicated display or checkout upsell push could cross $6K in 2026. Drinks ($2,987) and Apparel ($959) have room to grow with better placement.</span>
+      </li>
+      <li>
+        <span class="badge b-am">Payment mix</span>
+        <span>Check ($33.6K) and Cash ($28K) together account for 15% of revenue — meaningful manual payment volume. If even 20% of those convert to auto-billing, you add ~$12K in predictable recurring revenue with less admin overhead.</span>
+      </li>
+      <li>
+        <span class="badge b-bl">2026 forecast</span>
+        <span>Linear trend projects $442,569 — an +8% increase (+$33K) over 2025. This is a conservative baseline. Closing the February and November gaps alone adds ~$15K. A PT membership growth push could add another $10–$20K. Realistic upside: $460–$475K.</span>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="footer">
+  Gym Master · All Payments Report · Jan 1 – Dec 31, 2025 · 6,284 transactions · $409,558 gross revenue
+</div>
+
+<script>
+const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const rev2025 = [33715.68,29600.17,34354.25,36239.95,31641.21,37594.77,31650.42,32432.90,35122.32,41911.58,29573.18,35721.46];
+const refunds = [441.90,882.70,510.88,341.96,563.08,0,317.24,0,0,1332.63,0,467.62];
+const forecast2026 = [35619.93,35849.17,36078.42,36307.67,36536.91,36766.16,36995.41,37224.65,37453.90,37683.15,37912.39,38141.64];
+const billing = [23644.25,21068.67,23742.25,24286.22,23548.10,25859.95,24056.75,22839.80,24663.28,30715.95,20239.89,21381.99];
+const membership = [6645.38,6107.62,8281.12,9882.95,5129.42,8318.32,4718.72,5452.75,8015.39,7389.93,7243.10,10247.78];
+const total2025 = rev2025.reduce((a,b)=>a+b,0);
+
+const isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+const gridCol = isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+const tickCol = isDark?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.45)';
+const tf = {size:12,family:'-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif'};
+
+const fmt = v => '$' + Math.round(v).toLocaleString();
+const fmtK = v => '$' + Math.round(v/1000) + 'K';
+
+const axX = {grid:{display:false},ticks:{color:tickCol,font:tf,autoSkip:false,maxRotation:0}};
+const axY = {grid:{color:gridCol},border:{display:false},ticks:{color:tickCol,font:tf,callback:v=>fmtK(v)}};
+
+// Main chart
+new Chart(document.getElementById('mainChart'),{
+  data:{labels:months,datasets:[
+    {type:'bar',label:'2025 revenue',data:rev2025,backgroundColor:'#378ADD',borderRadius:4,order:2},
+    {type:'bar',label:'Refunds',data:refunds.map(v=>-v),backgroundColor:'#E24B4A',borderRadius:4,order:3},
+    {type:'line',label:'2026 forecast',data:forecast2026,borderColor:'#639922',backgroundColor:'rgba(99,153,34,0.08)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#639922',tension:0.3,fill:true,order:1}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(Math.abs(ctx.parsed.y))}}},
+    scales:{x:axX,y:{...axY,ticks:{...axY.ticks,callback:v=>(v<0?'-':'')+fmtK(Math.abs(v))}}}}
+});
+
+// Origin donut
+new Chart(document.getElementById('originChart'),{
+  type:'doughnut',
+  data:{labels:['Billing','Membership','Product sale','Booking/Other'],
+    datasets:[{data:[286047,87432,28239,1740],backgroundColor:['#378ADD','#1D9E75','#EF9F27','#7F77DD'],borderWidth:0,hoverOffset:8}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const pct=(ctx.parsed/403458*100).toFixed(1);return ctx.label+': '+fmt(ctx.parsed)+' ('+pct+'%)';}}}}}
+});
+
+// Method donut
+new Chart(document.getElementById('methodChart'),{
+  type:'doughnut',
+  data:{labels:['Auto-billing','Check','Cash','Card present'],
+    datasets:[{data:[323009,33560,28026,24319],backgroundColor:['#378ADD','#1D9E75','#EF9F27','#7F77DD'],borderWidth:0,hoverOffset:8}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const pct=(ctx.parsed/408914*100).toFixed(1);return ctx.label+': '+fmt(ctx.parsed)+' ('+pct+'%)';}}}}}
+});
+
+// Billing vs Membership
+new Chart(document.getElementById('bmChart'),{
+  type:'bar',
+  data:{labels:months,datasets:[
+    {label:'Billing',data:billing,backgroundColor:'#378ADD',borderRadius:3},
+    {label:'Membership',data:membership,backgroundColor:'#1D9E75',borderRadius:3}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}}},
+    scales:{x:{...axX,ticks:{...axX.ticks,font:{size:11}}},y:axY}}
+});
+
+// MoM
+const mom = rev2025.map((v,i)=>i===0?0:Math.round(v-rev2025[i-1]));
+new Chart(document.getElementById('momChart'),{
+  type:'bar',
+  data:{labels:months,datasets:[{label:'MoM change',data:mom,backgroundColor:mom.map(v=>v>=0?'#639922':'#E24B4A'),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>(ctx.parsed.y>=0?'+':'')+fmt(ctx.parsed.y)}}},
+    scales:{x:{...axX,ticks:{...axX.ticks,font:{size:11}}},y:{...axY,ticks:{...axY.ticks,callback:v=>(v>=0?'+':'-')+fmtK(Math.abs(v))}}}}
+});
+
+// Monthly share
+const shares = rev2025.map(v=>+(v/total2025*100).toFixed(1));
+new Chart(document.getElementById('shareChart'),{
+  type:'bar',
+  data:{labels:months,datasets:[{label:'% of year',data:shares,backgroundColor:shares.map(v=>v>=10?'#378ADD':v>=9?'#63A0D4':'#B5D4F4'),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y.toFixed(1)+'% of annual revenue ($'+fmt(rev2025[ctx.dataIndex])+')'}}},
+    scales:{x:{...axX,ticks:{...axX.ticks,font:{size:11}}},y:{...axY,ticks:{...axY.ticks,callback:v=>v.toFixed(0)+'%'}}}}
+});
+
+// Refunds detail
+new Chart(document.getElementById('refundChart'),{
+  type:'bar',
+  data:{labels:months,datasets:[{label:'Refunds',data:refunds,backgroundColor:'#E24B4A',borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y>0?'-'+fmt(ctx.parsed.y):'None'}}},
+    scales:{x:axX,y:{...axY,ticks:{...axY.ticks,callback:v=>'$'+Math.round(v).toLocaleString()}}}}
+});
+
+// Membership category bars
+const cats=[
+  {lbl:'Import Memberships',val:87527,color:'#378ADD'},
+  {lbl:'Gym Membership',val:77513,color:'#1D9E75'},
+  {lbl:'Group Training',val:48956,color:'#EF9F27'},
+  {lbl:'Personal Training',val:46392,color:'#7F77DD'},
+  {lbl:'Mentorship',val:12024,color:'#D85A30'},
+  {lbl:'Group Training (No Tax)',val:8296,color:'#63A0D4'},
+  {lbl:'PT (No Tax)',val:3267,color:'#9FE1CB'},
+  {lbl:'Tanning',val:1096,color:'#FAC775'},
+  {lbl:'Tanning (No Tax)',val:977,color:'#D3D1C7'},
+];
+const maxCat=87527;
+const catEl=document.getElementById('catBars');
+cats.forEach(c=>{
+  const pct=(c.val/maxCat*100).toFixed(0);
+  const display = c.val>=1000 ? '$'+Math.round(c.val/1000)+'K' : '$'+Math.round(c.val);
+  catEl.innerHTML+=`<div class="bar-row"><span class="bar-lbl" title="${c.lbl}">${c.lbl}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.color};"></div></div><span class="bar-val">${display}</span></div>`;
+});
+
+// Product bars
+const prods=[
+  {lbl:'General',val:10909,color:'#378ADD'},
+  {lbl:'Drop In',val:5517,color:'#1D9E75'},
+  {lbl:'Supplements',val:4751,color:'#EF9F27'},
+  {lbl:'Drink',val:2987,color:'#7F77DD'},
+  {lbl:'Misc/Account',val:1908,color:'#D85A30'},
+  {lbl:'Food',val:1097,color:'#63A0D4'},
+  {lbl:'Apparel/Merch',val:959,color:'#9FE1CB'},
+  {lbl:'Gift Voucher',val:103,color:'#FAC775'},
+];
+const maxProd=10909;
+const prodEl=document.getElementById('prodBars');
+prods.forEach(p=>{
+  const pct=(p.val/maxProd*100).toFixed(0);
+  prodEl.innerHTML+=`<div class="bar-row"><span class="bar-lbl">${p.lbl}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${p.color};"></div></div><span class="bar-val">$${Math.round(p.val).toLocaleString()}</span></div>`;
+});
+</script>
+</body>
+</html>
